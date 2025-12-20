@@ -167,6 +167,7 @@ defmodule AshTypescript.MixProject do
   defp deps do
     [
       {:ash, "~> 3.7"},
+      {:ash_introspection, path: "../ash_introspection"},
       {:ash_phoenix, "~> 2.0"},
       {:ash_postgres, "~> 2.0", only: [:dev, :test]},
       {:git_ops, "~> 2.0", only: [:dev], runtime: false},

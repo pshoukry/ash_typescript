@@ -6,8 +6,8 @@ defmodule AshTypescript.TypeSystem.ResourceFields do
   @moduledoc """
   Provides unified resource field type lookup.
 
-  This module centralizes the logic for looking up field types from Ash resources,
-  supporting attributes, calculations, relationships, and aggregates.
+  This module delegates to `AshIntrospection.TypeSystem.ResourceFields` for shared
+  functionality.
 
   ## Variants
 
@@ -16,6 +16,8 @@ defmodule AshTypescript.TypeSystem.ResourceFields do
 
   Both return `{type, constraints}` tuples, with `{nil, []}` for unknown fields.
   """
+
+  alias AshIntrospection.TypeSystem.ResourceFields, as: SharedResourceFields
 
   @doc """
   Gets the type and constraints for any field on a resource.
@@ -35,25 +37,7 @@ defmodule AshTypescript.TypeSystem.ResourceFields do
       {nil, []}
   """
   @spec get_field_type_info(module(), atom()) :: {atom() | tuple() | nil, keyword()}
-  def get_field_type_info(resource, field_name) do
-    cond do
-      attr = Ash.Resource.Info.attribute(resource, field_name) ->
-        {attr.type, attr.constraints || []}
-
-      calc = Ash.Resource.Info.calculation(resource, field_name) ->
-        {calc.type, calc.constraints || []}
-
-      rel = Ash.Resource.Info.relationship(resource, field_name) ->
-        type = if rel.cardinality == :many, do: {:array, rel.destination}, else: rel.destination
-        {type, []}
-
-      agg = Ash.Resource.Info.aggregate(resource, field_name) ->
-        {agg.type, agg.constraints || []}
-
-      true ->
-        {nil, []}
-    end
-  end
+  defdelegate get_field_type_info(resource, field_name), to: SharedResourceFields
 
   @doc """
   Gets the type and constraints for public fields only.
@@ -70,22 +54,7 @@ defmodule AshTypescript.TypeSystem.ResourceFields do
       {nil, []}
   """
   @spec get_public_field_type_info(module(), atom()) :: {atom() | tuple() | nil, keyword()}
-  def get_public_field_type_info(resource, field_name) do
-    with nil <- Ash.Resource.Info.public_attribute(resource, field_name),
-         nil <- Ash.Resource.Info.public_calculation(resource, field_name),
-         nil <- Ash.Resource.Info.public_aggregate(resource, field_name) do
-      case Ash.Resource.Info.public_relationship(resource, field_name) do
-        nil ->
-          {nil, []}
-
-        rel ->
-          type = if rel.cardinality == :many, do: {:array, rel.destination}, else: rel.destination
-          {type, []}
-      end
-    else
-      field -> {field.type, field.constraints || []}
-    end
-  end
+  defdelegate get_public_field_type_info(resource, field_name), to: SharedResourceFields
 
   @doc """
   Gets the resolved type for an aggregate field.
@@ -99,14 +68,5 @@ defmodule AshTypescript.TypeSystem.ResourceFields do
       {Ash.Type.Integer, []}
   """
   @spec get_aggregate_type_info(module(), atom()) :: {atom() | nil, keyword()}
-  def get_aggregate_type_info(resource, field_name) do
-    case Ash.Resource.Info.aggregate(resource, field_name) do
-      nil ->
-        {nil, []}
-
-      agg ->
-        resolved_type = Ash.Resource.Info.aggregate_type(resource, agg)
-        {resolved_type, []}
-    end
-  end
+  defdelegate get_aggregate_type_info(resource, field_name), to: SharedResourceFields
 end
